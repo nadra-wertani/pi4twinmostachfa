@@ -17,7 +17,7 @@ const cors = require('cors');
 const app = express();
 
 // Configuration et middleware
-app.use(express.json());
+
  // ⚠️ Déclarer `app` AVANT d'utiliser `app.use()`
  async function connectDB() {
   try {
@@ -54,7 +54,7 @@ process.on("SIGINT", async () => {
 connectDB();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'twig');
-
+app.use(express.json());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
