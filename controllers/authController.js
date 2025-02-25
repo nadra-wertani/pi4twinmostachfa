@@ -79,7 +79,7 @@ const register = async (req, res) => {
 
     // Génération du token pour la vérification de l'email
     const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
+      expiresIn:  '24h'
     });
 
     // Création du personnel
@@ -114,7 +114,13 @@ const verifyAccount = async (req, res) => {
   const { token } = req.params;
   try {
     // Vérifier et décoder le token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err && err.name === 'TokenExpiredError') {
+        return res.status(400).json({ message: "Le lien de vérification a expiré" });
+      }
+      return decoded;
+    });
+
     const personnel = await Personnel.findOne({ email: decoded.email });
 
     if (!personnel) {
@@ -129,9 +135,10 @@ const verifyAccount = async (req, res) => {
     res.status(200).json({ message: "Compte vérifié avec succès" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Lien de vérification invalide ou expiré", error });
+    res.status(500).json({ message: "Erreur interne lors de la vérification", error });
   }
 };
+
 
 // Fonction de réinitialisation du mot de passe (demande de réinitialisation)
 const forgotPassword = async (req, res) => {
