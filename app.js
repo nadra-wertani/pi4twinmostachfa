@@ -25,8 +25,7 @@ app.use(express.json());
 async function connectDB() {
   try {
     await mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/regpidecodequeen", {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+     
       serverSelectionTimeoutMS: 30000, // Temps max pour trouver un serveur
       socketTimeoutMS: 45000, // Timeout de connexion
       connectTimeoutMS: 30000, // Timeout initial de connexion
