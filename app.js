@@ -22,11 +22,18 @@ app.use(express.json());
 
 // Connexion à MongoDB
 mongoose
-  .connect("mongodb://127.0.0.1:27017/regpidecodequeen")
-  .then(() => console.log("Connexion à MongoDB réussie.")) // Log de succès
-  .catch((err) => console.error("Erreur de connexion à MongoDB:", err)); // Log d'erreur
+  .connect("mongodb://127.0.0.1:27017/regpidecodequeen", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(async () => {
+    console.log("✅ Connexion réussie à MongoDB !");
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log("Collections dans la DB :", collections.map(c => c.name));
+    mongoose.connection.close();
+  })
+  .catch((err) => console.error("❌ Erreur de connexion :", err));
 
-// Configuration du moteur de vue
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'twig');
 
