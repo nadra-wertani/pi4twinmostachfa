@@ -6,7 +6,7 @@ const Personnel = require("../models/Personnel");
 const nodemailer = require("nodemailer");
 const { body, validationResult } = require("express-validator");
 require("dotenv").config();
-const bcrypt = require("bcrypt");
+//const bcrypt = require("bcrypt");
 const crypto = require('crypto');
 
 

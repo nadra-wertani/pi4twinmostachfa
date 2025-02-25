@@ -8,7 +8,7 @@ require("dotenv").config(); // Charger les variables d'environnement
 const authRoutes = require("./routes/authRoutes");
 var indexRouter = require('./routes/index');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
+
 
 //var usersRouter = require('./routes/users');
 //var personnelrouter = require('./routes/personnelRoutes');
@@ -24,7 +24,9 @@ app.use(express.json());
 // Connexion à MongoDB
 async function connectDB() {
   try {
-    await mongoose.connect("mongodb://127.0.0.1:27017/regpidecodequeen", {
+    await mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/regpidecodequeen", {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000, // Temps max pour trouver un serveur
       socketTimeoutMS: 45000, // Timeout de connexion
       connectTimeoutMS: 30000, // Timeout initial de connexion
@@ -33,10 +35,9 @@ async function connectDB() {
     console.log("✅ Connexion réussie à MongoDB !");
   } catch (error) {
     console.error("❌ Erreur de connexion à MongoDB :", error);
-    process.exit(1); // Arrêter l'application en cas d'échec
+    setTimeout(connectDB, 5000); // Réessayer après 5 secondes
   }
 }
-
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'twig');
