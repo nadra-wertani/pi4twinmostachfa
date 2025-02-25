@@ -77,11 +77,12 @@ const register = async (req, res) => {
     // Hachage du mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Génération du token pour la vérification de l'email
     const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, {
-      expiresIn:  '1h'
+      expiresIn: '1h'
     });
-
+    
+    console.log("Token généré :", verificationToken);
+    
     // Création du personnel
     const personnel = new Personnel({
       firstName,
