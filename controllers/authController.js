@@ -6,6 +6,9 @@ const Personnel = require("../models/Personnel");
 const nodemailer = require("nodemailer");
 const { body, validationResult } = require("express-validator");
 require("dotenv").config();
+const bcrypt = require("bcrypt");
+const crypto = require('crypto');
+
 
 
 // Transporteur Nodemailer
@@ -57,7 +60,7 @@ const validateRegistration = [
   body("lastName").notEmpty().withMessage("Le nom est requis."),
 ];
 
-// Within the 'register' function
+// Fonction d'inscription
 const register = async (req, res) => {
   // Vérification des erreurs de validation
   const errors = validationResult(req);
@@ -77,12 +80,11 @@ const register = async (req, res) => {
     // Hachage du mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Génération du token pour la vérification de l'email
     const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, {
-      expiresIn: '1h'
+      expiresIn: '1h',
     });
-    
-    console.log("Token généré :", verificationToken);
-    
+
     // Création du personnel
     const personnel = new Personnel({
       firstName,
@@ -95,10 +97,8 @@ const register = async (req, res) => {
 
     await personnel.save();
 
-    // Envoyer l'email de vérification
-    if (process.env.NODE_ENV !== 'development') {
-      await sendVerificationEmail(email, verificationToken);
-    }
+    // Envoi de l'email de vérification
+    sendVerificationEmail(email, verificationToken);
 
     res.status(201).json({
       message: "Enregistrement réussi. Veuillez vérifier votre e-mail pour activer votre compte.",
@@ -109,39 +109,27 @@ const register = async (req, res) => {
   }
 };
 
-
 // Fonction de vérification du compte
 const verifyAccount = async (req, res) => {
   const { token } = req.params;
-  console.log("Token reçu :", token); // Vérifier le token reçu
-
   try {
-    if (!token) {
-      return res.status(400).json({ message: "Aucun token fourni" });
-    }
-
+    // Vérifier et décoder le token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Token décodé :", decoded); // Voir le contenu du token
-
     const personnel = await Personnel.findOne({ email: decoded.email });
-    console.log("Utilisateur trouvé :", personnel); // Vérifier si l'utilisateur existe
 
     if (!personnel) {
       return res.status(400).json({ message: "Utilisateur non trouvé" });
     }
 
-    if (personnel.isVerified) {
-      return res.status(400).json({ message: "Compte déjà vérifié" });
-    }
-
+    // Mettre à jour le statut de vérification
     personnel.isVerified = true;
     personnel.verificationToken = null;
     await personnel.save();
 
     res.status(200).json({ message: "Compte vérifié avec succès" });
   } catch (error) {
-    console.error("Erreur de vérification :", error); // Afficher l'erreur exacte
-    res.status(500).json({ message: "Erreur interne lors de la vérification", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Lien de vérification invalide ou expiré", error });
   }
 };
 

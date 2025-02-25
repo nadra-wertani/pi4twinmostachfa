@@ -19,20 +19,24 @@ const app = express();
 // Configuration et middleware
 app.use(express.json());
  // ⚠️ Déclarer `app` AVANT d'utiliser `app.use()`
+ connectDB(); // 🔹 Ajoutez ceci pour établir la connexion à MongoDB
 
 // Connexion à MongoDB
-mongoose
-  .connect("mongodb://127.0.0.1:27017/regpidecodequeen", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(async () => {
+async function connectDB() {
+  try {
+    await mongoose.connect("mongodb://127.0.0.1:27017/regpidecodequeen", {
+      serverSelectionTimeoutMS: 30000, // Temps max pour trouver un serveur
+      socketTimeoutMS: 45000, // Timeout de connexion
+      connectTimeoutMS: 30000, // Timeout initial de connexion
+    });
+
     console.log("✅ Connexion réussie à MongoDB !");
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    console.log("Collections dans la DB :", collections.map(c => c.name));
-    mongoose.connection.close();
-  })
-  .catch((err) => console.error("❌ Erreur de connexion :", err));
+  } catch (error) {
+    console.error("❌ Erreur de connexion à MongoDB :", error);
+    process.exit(1); // Arrêter l'application en cas d'échec
+  }
+}
+
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'twig');
