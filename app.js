@@ -19,39 +19,11 @@ const app = express();
 // Configuration et middleware
 
  // ⚠️ Déclarer `app` AVANT d'utiliser `app.use()`
- async function connectDB() {
-  try {
-    await mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/regpidecodequeen", {
-      serverSelectionTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 30000,
-    });
+ mongoose
+  .connect("mongodb://127.0.0.1:27017/regpidecodequeen")
+  .then(() => console.log("Connexion à MongoDB réussie.")) // Log de succès
+  .catch((err) => console.error("Erreur de connexion à MongoDB:", err)); // Log d'erreur
 
-    console.log("✅ Connexion réussie à MongoDB !");
-  } catch (error) {
-    console.error("❌ Erreur de connexion à MongoDB :", error);
-    setTimeout(connectDB, 5000); // Réessayer après 5 secondes
-  }
-}
-
-// Gestion des événements de connexion
-mongoose.connection.on("error", (err) => {
-  console.error("❌ Erreur de connexion à MongoDB :", err);
-});
-
-mongoose.connection.on("disconnected", () => {
-  console.warn("⚠️ Connexion à MongoDB perdue. Tentative de reconnexion...");
-  setTimeout(connectDB, 5000);
-});
-
-// Gestion de l'arrêt de l'application
-process.on("SIGINT", async () => {
-  await mongoose.connection.close();
-  console.log("🔴 Connexion à MongoDB fermée proprement.");
-  process.exit(0);
-});
-
-connectDB();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'twig');
 app.use(express.json());
