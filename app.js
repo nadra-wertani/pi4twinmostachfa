@@ -8,6 +8,8 @@ require("dotenv").config(); // Charger les variables d'environnement
 const authRoutes = require("./routes/authRoutes");
 var indexRouter = require('./routes/index');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+
 //var usersRouter = require('./routes/users');
 //var personnelrouter = require('./routes/personnelRoutes');
 //var registerRoute = require("./routes/register");

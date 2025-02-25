@@ -2,6 +2,7 @@
 const express = require("express");
 const { login, register, verifyAccount, forgotPassword,showResetPasswordForm,resetPassword,validateRegistration ,updatePersonnel,deletePersonnel} = require("../controllers/authController");
 const authenticateJWT = require("../middleware/authenticateJWT"); // Importer le middleware JWT
+const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 require("dotenv").config();

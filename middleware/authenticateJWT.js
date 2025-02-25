@@ -1,5 +1,7 @@
 // middleware/authenticateJWT.js
 const jwt = require("jsonwebtoken");
+const bcrypt = require('bcryptjs');
+
 
 const authenticateJWT = (req, res, next) => {
   const token = req.header("Authorization");

@@ -1,10 +1,12 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require('bcryptjs');
+
+
 const jwt = require("jsonwebtoken");
 const Personnel = require("../models/Personnel");
 const nodemailer = require("nodemailer");
 const { body, validationResult } = require("express-validator");
 require("dotenv").config();
-const crypto = require('crypto');
+
 
 // Transporteur Nodemailer
 const transporter = nodemailer.createTransport({
