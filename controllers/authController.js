@@ -34,18 +34,18 @@ const sendEmail = async (options) => {
 };
 
 // Fonction d'envoi de l'email de vérification
-const sendVerificationEmail = async (email, verificationToken) => {
+const sendVerificationEmail = async (email) => {
+  const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
   const verificationUrl = `${process.env.BASE_URL}/auth/verify/${verificationToken}`;
 
   await sendEmail({
-    email: email,
+    email,
     subject: 'Vérification de votre compte',
     html: `
       <h1>Vérification de votre compte</h1>
       <p>Bienvenue ! Pour vérifier votre compte, veuillez cliquer sur le lien ci-dessous :</p>
       <a href="${verificationUrl}">${verificationUrl}</a>
       <p>Ce lien expirera dans 1 heure.</p>
-      <p>Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.</p>
     `,
   });
 };
@@ -81,9 +81,9 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Génération du token pour la vérification de l'email
-    const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    //const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, {
+     // expiresIn: '1h',
+    //});
 
     // Création du personnel
     const personnel = new Personnel({
@@ -92,7 +92,8 @@ const register = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      verificationToken,
+      //verificationToken,
+      isVerified: false, 
     });
 
     await personnel.save();
