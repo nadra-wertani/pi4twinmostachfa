@@ -11,56 +11,46 @@ const crypto = require('crypto');
 
 
 
+// Transporteur Nodemailer
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  service: 'gmail',
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
 });
 
-// Fonction générique pour envoyer un email
+// Fonction d'envoi de l'email générique
 const sendEmail = async (options) => {
   const mailOptions = {
     from: process.env.MAIL_USER,
     to: options.email,
     subject: options.subject,
-    html: options.html,
+    text: options.text || '',
+    html: options.html || '',
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-  } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email :", error);
-    throw new Error("Erreur lors de l'envoi de l'email");
-  }
+  await transporter.sendMail(mailOptions);
 };
 
 // Fonction d'envoi de l'email de vérification
-const sendVerificationEmail = async (email) => {
-  try {
-    const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    const verificationUrl = `${process.env.BASE_URL}/auth/verify/${verificationToken}`;
+const sendVerificationEmail = async (email, verificationToken) => {
+  const verificationUrl = `${process.env.BASE_URL}/auth/verify/${verificationToken}`;
 
-    await sendEmail({
-      email,
-      subject: "Vérification de votre compte",
-      html: `
-        <h1>Vérification de votre compte</h1>
-        <p>Bienvenue ! Pour vérifier votre compte, veuillez cliquer sur le lien ci-dessous :</p>
-        <a href="${verificationUrl}">${verificationUrl}</a>
-        <p>Ce lien expirera dans 1 heure.</p>
-      `,
-    });
-
-    return verificationToken; // Retourner le token pour un éventuel stockage
-  } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email de vérification :", error);
-    throw new Error("Erreur lors de l'envoi de l'email de vérification");
-  }
+  await sendEmail({
+    email: email,
+    subject: 'Vérification de votre compte',
+    html: `
+      <h1>Vérification de votre compte</h1>
+      <p>Bienvenue ! Pour vérifier votre compte, veuillez cliquer sur le lien ci-dessous :</p>
+      <a href="${verificationUrl}">${verificationUrl}</a>
+      <p>Ce lien expirera dans 1 heure.</p>
+      <p>Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.</p>
+    `,
+  });
 };
 
-// Validation des données d'inscription
+// Fonction de validation des données d'inscription
 const validateRegistration = [
   body("email").isEmail().withMessage("Veuillez fournir un email valide."),
   body("password")
@@ -72,6 +62,7 @@ const validateRegistration = [
 
 // Fonction d'inscription
 const register = async (req, res) => {
+  // Vérification des erreurs de validation
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -80,7 +71,7 @@ const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
 
-    // Vérifier si l'utilisateur existe déjà
+    // Vérifier si l'email existe déjà
     const existingPersonnel = await Personnel.findOne({ email });
     if (existingPersonnel) {
       return res.status(400).json({ message: "Cet email est déjà utilisé" });
@@ -89,35 +80,38 @@ const register = async (req, res) => {
     // Hachage du mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Création du nouvel utilisateur
+    // Génération du token pour la vérification de l'email
+    const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+
+    // Création du personnel
     const personnel = new Personnel({
       firstName,
       lastName,
       email,
       password: hashedPassword,
       role,
-      isVerified: false, // Initialement non vérifié
+      verificationToken,
     });
 
-    // Sauvegarde dans la base de données
     await personnel.save();
 
     // Envoi de l'email de vérification
-    await sendVerificationEmail(email);
+    sendVerificationEmail(email, verificationToken);
 
     res.status(201).json({
       message: "Enregistrement réussi. Veuillez vérifier votre e-mail pour activer votre compte.",
     });
   } catch (error) {
-    console.error("Erreur lors de l'inscription :", error);
-    res.status(500).json({ message: "Erreur lors de l'inscription", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Erreur lors de l'inscription", error });
   }
 };
 
 // Fonction de vérification du compte
 const verifyAccount = async (req, res) => {
   const { token } = req.params;
-
   try {
     // Vérifier et décoder le token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -127,18 +121,15 @@ const verifyAccount = async (req, res) => {
       return res.status(400).json({ message: "Utilisateur non trouvé" });
     }
 
-    if (personnel.isVerified) {
-      return res.status(400).json({ message: "Ce compte est déjà vérifié" });
-    }
-
     // Mettre à jour le statut de vérification
     personnel.isVerified = true;
+    personnel.verificationToken = null;
     await personnel.save();
 
     res.status(200).json({ message: "Compte vérifié avec succès" });
   } catch (error) {
-    console.error("Erreur lors de la vérification du compte :", error);
-    res.status(500).json({ message: "Lien de vérification invalide ou expiré", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Lien de vérification invalide ou expiré", error });
   }
 };
 
