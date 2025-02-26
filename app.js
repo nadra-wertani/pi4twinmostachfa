@@ -37,7 +37,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 //app.use(cors());
 app.use(cors({
-  origin: 'http://localhost:3001', // Autorise uniquement votre frontend
+  origin: 'http://localhost:3002', // Autorise uniquement votre frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
