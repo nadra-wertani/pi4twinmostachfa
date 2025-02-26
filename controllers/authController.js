@@ -134,45 +134,7 @@ const verifyAccount = async (req, res) => {
 };
 
 // Fonction de réinitialisation du mot de passe (demande de réinitialisation)
-const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    const personnel = await Personnel.findOne({ email });
 
-    if (!personnel) {
-      return res.status(404).json({ message: "Aucun compte associé à cet email" });
-    }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    personnel.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    personnel.resetPasswordExpires = Date.now() + 3600000; // Le token expire dans 1 heure
-
-    await personnel.save();
-
-    const resetUrl = `${process.env.BASE_URL}/auth/reset-password/:token${resetToken}`;
-
-    // Envoi de l'email de réinitialisation
-    const mailOptions = {
-      from: process.env.MAIL_USER,
-      to: personnel.email,
-      subject: 'Réinitialisation de votre mot de passe',
-      html: `
-        <h1>Vous avez demandé une réinitialisation de mot de passe</h1>
-        <p>Cliquez sur ce lien pour réinitialiser votre mot de passe :</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>Ce lien expirera dans 1 heure.</p>
-        <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions);
-
-    res.status(200).json({ message: "Un email de réinitialisation a été envoyé à votre adresse" });
-  } catch (error) {
-    console.error("Erreur lors de l'envoi de l'email de réinitialisation :", error);
-    res.status(500).json({ message: "Une erreur est survenue lors de l'envoi de l'email de réinitialisation", error });
-  }
-};
 
 // Fonction pour afficher le formulaire de réinitialisation du mot de passe
 const showResetPasswordForm = async (req, res) => {
@@ -205,32 +167,62 @@ const showResetPasswordForm = async (req, res) => {
 };
 
 // Fonction de réinitialisation du mot de passe (soumission du nouveau mot de passe)
-const resetPassword = async (req, res) => {
+const forgotPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
+    const { email, captchaToken } = req.body;
 
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-    const personnel = await Personnel.findOne({
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!personnel) {
-      return res.status(400).json({ message: "Le token de réinitialisation est invalide ou a expiré" });
+    if (!captchaToken) {
+      return res.status(400).json({ message: "Captcha manquant." });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    personnel.password = hashedPassword;
-    personnel.resetPasswordToken = undefined;
-    personnel.resetPasswordExpires = undefined;
+    // Vérification du token auprès de Google
+    const captchaVerifyUrl = "https://www.google.com/recaptcha/api/siteverify";
+    const response = await axios.post(
+      captchaVerifyUrl,
+      null,
+      {
+        params: {
+          secret: process.env.RECAPTCHA_SECRET_KEY, // Clé secrète
+          response: captchaToken,
+        },
+      }
+    );
+
+    if (!response.data.success) {
+      return res.status(400).json({ message: "Échec de la vérification du Captcha." });
+    }
+
+    // Vérifier si l'email existe dans la base de données
+    const personnel = await Personnel.findOne({ email });
+
+    if (!personnel) {
+      return res.status(404).json({ message: "Aucun compte associé à cet email" });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    personnel.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    personnel.resetPasswordExpires = Date.now() + 3600000; // 1 heure
 
     await personnel.save();
 
-    res.status(200).json({ message: "Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter." });
+    const resetUrl = $`{process.env.BASE_URL}/auth/reset-password/${resetToken}`;
+
+    await sendEmail({
+      email: personnel.email,
+      subject: "Réinitialisation de votre mot de passe",
+      html: `
+        <h1>Réinitialisation de votre mot de passe</h1>
+        <p>Cliquez sur ce lien pour réinitialiser votre mot de passe :</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+        <p>Ce lien expirera dans 1 heure.</p>
+      `,
+    });
+
+    res.status(200).json({ message: "Un email de réinitialisation a été envoyé." });
+
   } catch (error) {
-    console.error("Erreur lors de la réinitialisation du mot de passe :", error);
-    res.status(500).json({ message: "Une erreur est survenue lors de la réinitialisation du mot de passe", error });
+    console.error("Erreur:", error);
+    res.status(500).json({ message: "Une erreur est survenue.", error: error.message });
   }
 };
 
@@ -323,7 +315,7 @@ module.exports = {
   verifyAccount,
   forgotPassword,
   showResetPasswordForm,
-  resetPassword,
+
   updatePersonnel,
   deletePersonnel,
   validateRegistration 
