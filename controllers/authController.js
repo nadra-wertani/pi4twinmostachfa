@@ -260,6 +260,40 @@ const login = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la connexion", error });
   }
 };
+const axios = require("axios");
+
+const verifyCaptcha = async (req, res, next) => {
+    const { captcha } = req.body;
+
+    if (!captcha) {
+        return res.status(400).json({ message: "Captcha manquant." });
+    }
+
+    try {
+        const secretKey = "VOTRE_SECRET_KEY"; // Remplacez par votre clé secrète reCAPTCHA
+        const response = await axios.post(
+            `https://www.google.com/recaptcha/api/siteverify`,
+            null,
+            {
+                params: {
+                    secret: secretKey,
+                    response: captcha,
+                },
+            }
+        );
+
+        const { success } = response.data;
+
+        if (!success) {
+            return res.status(400).json({ message: "Captcha invalide." });
+        }
+
+        next(); // Passer à la suite (réinitialisation du mot de passe)
+    } catch (error) {
+        return res.status(500).json({ message: "Erreur lors de la vérification du Captcha." });
+    }
+};
+
 
 // Mise à jour des informations du personnel
 const updatePersonnel = async (req, res) => {
@@ -313,6 +347,7 @@ const deletePersonnel = async (req, res) => {
 module.exports = {
   register,
   login,
+  verifyCaptcha,
   verifyAccount,
   forgotPassword,
   showResetPasswordForm,

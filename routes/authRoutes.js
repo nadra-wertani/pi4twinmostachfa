@@ -1,6 +1,6 @@
 // routes/authRoutes.js
 const express = require("express");
-const { login, register, verifyAccount, forgotPassword,showResetPasswordForm,resetPassword,validateRegistration ,updatePersonnel,deletePersonnel} = require("../controllers/authController");
+const { login, register, verifyCaptcha,verifyAccount, forgotPassword,showResetPasswordForm,resetPassword,validateRegistration ,updatePersonnel,deletePersonnel} = require("../controllers/authController");
 const authenticateJWT = require("../middleware/authenticateJWT"); // Importer le middleware JWT
 const bcrypt = require('bcryptjs');
 
@@ -10,14 +10,21 @@ require("dotenv").config();
 // Routes publiques
 router.post("/register", validateRegistration, register);
 router.get("/verify/:token", verifyAccount);
+router.post("/forgot-password", verifyCaptcha, async (req, res) => {
+  const { email } = req.body;
 
+  // Simulation de l'envoi d'un e-mail de réinitialisation du mot de passe
+  console.log(`Réinitialisation du mot de passe demandée pour : ${email}`);
+  
+  return res.status(200).json({ message: "Email de réinitialisation envoyé." });
+});
 router.post("/login", login);
 // Mise à jour des informations d'un utilisateur
 router.put("/update/:id", authenticateJWT, updatePersonnel);
 
 // Suppression d'un utilisateur
 router.delete("/delete/:id", authenticateJWT, deletePersonnel);
-router.post("/forgot-password", forgotPassword);
+//router.post("/forgot-password", forgotPassword);
 
 // Ajoutez cette route GET pour afficher le formulaire de réinitialisation
 router.get("/reset-password/:token", showResetPasswordForm);
