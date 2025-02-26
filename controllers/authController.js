@@ -99,7 +99,7 @@ const register = async (req, res) => {
     await personnel.save();
 
     // Envoi de l'email de vérification
-    sendVerificationEmail(email, verificationToken);
+    sendVerificationEmail(email);
 
     res.status(201).json({
       message: "Enregistrement réussi. Veuillez vérifier votre e-mail pour activer votre compte.",
