@@ -205,7 +205,8 @@ const forgotPassword = async (req, res) => {
 
     await personnel.save();
 
-    const resetUrl = $`{process.env.BASE_URL}/auth/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.BASE_URL}/auth/forgot-password/${resetToken}`;
+    ;
 
     await sendEmail({
       email: personnel.email,
